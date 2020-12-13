@@ -1,11 +1,16 @@
 const crypto = require('crypto')
 const jwt = require('jsonwebtoken')
-const secret = require('../config').secret
+const secret = require('../config/config.json')[process.env.NODE_ENV].secret
 
 module.exports = (sequelize, DataTypes) => {
   const User = sequelize.define(
     'User',
     {
+      id: {
+        type: DataTypes.UUID,
+        defaultValue: DataTypes.UUIDV4,
+        primaryKey: true
+      },
       username: {
         type: DataTypes.STRING,
         set(v) {
@@ -88,6 +93,14 @@ module.exports = (sequelize, DataTypes) => {
       indexes: [{ fields: ['username'] }, { fields: ['email'] }]
     }
   )
+  User.associate = (models) => {
+    User.hasOne(models.OAuthToken, {
+      as: 'user',
+      foreignKey: 'userId',
+      sourceKey: 'id',
+      onDelete: 'SET NULL'
+    });
+  };
 
   User.prototype.validPassword = function(password) {
     let hash = crypto.pbkdf2Sync(password, this.salt, 10000, 512, 'sha512').toString('hex')
